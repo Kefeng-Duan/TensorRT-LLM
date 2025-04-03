@@ -81,9 +81,9 @@ trtllm-bench --model deepseek-ai/DeepSeek-R1 \
 ```
 
 Explanation:
-- `trtllm-bench`: A CLI packags benchmarking utility that aims to make it easier for users to reproduce our officially published. [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html).
+- `trtllm-bench`: A CLI benchmarking utility that aims to make it easier for users to reproduce our officially published. [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html).
 - `--dataset`: Prompt dataset used to benchmark. our official benchmark dataset has ISL = 1K, OSL = 2K
-- `--backend`: Inference backend. Here we use Pytorch backed. 
+- `--backend`: Inference backend. Here we use Pytorch backend. 
 - `--tp 8`: Tensor parallel size is 8.
 - `--ep 4`: Expert parallel size is 4.
 - `--extra_llm_api_options`: Used to specify some extra config. The content of the file is as follows:
