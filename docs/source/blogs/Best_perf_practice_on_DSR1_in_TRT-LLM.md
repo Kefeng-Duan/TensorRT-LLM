@@ -4,9 +4,7 @@ NVIDIA has announced world-record DeepSeek-R1 inference performance at NVIDIA GT
 
 In this blog, we share the configrations and procedures about how to reproduce the number on both B200 and H200 with Pytorch workflow.
 
-## B200 min-latency
-Our benchmark results are based on **Batch = 1, ISL = 1K, OSL = 2K, num_requests = 10 from real dataset**
-
+## B200 NVL8
 ### Prerequisites
 
 ``` bash
@@ -36,7 +34,7 @@ git lfs pull  # Download the full model weight will take a long time
 ```
 **Note**: Replace `<*_PATH>` to your actual path. 
 
-### Build Docker 
+#### Build Docker 
 Create a docker and run:
 
 ``` bash
@@ -45,7 +43,7 @@ make -C docker jenkins_run LOCAL_USER=1 DOCKER_RUN_ARGS="-v $YOUR_MODEL_PATH:$YO
 ```
 Here we set `LOCAL_USER=1` argument to set up the local user account inside the container.
 
-### Compile and Install
+#### Compile and Install
 Here we compile the source inside the container:
 
 ``` bash
@@ -59,9 +57,10 @@ pip install --user build/tensorrt_llm*.whl
 export PATH=${HOME}/.local/bin:${PATH}
 export PYTHONPATH=`pwd`
 ```
+### B200 min-latency
+Our benchmark results are based on **Batch = 1, ISL = 1K, OSL = 2K, num_requests = 10 from real dataset**
 
-
-### Benchmark
+#### Benchmark
 To do the benchmark, run the following command:
 
 ```bash
@@ -98,7 +97,7 @@ Explanation:
     ```
 
 
-### Expected Result Format
+#### Expected Result Format
 The perf might be different from different datasets and machines
 
 ``` 
@@ -115,9 +114,7 @@ Average request latency (ms):                     45318.9080
 
 ## B200 max-throughput
 
-## H200 min-latency
-Our benchmark results are based on **Batch = 1, ISL = 1K, OSL = 2K, num_requests = 10 from real dataset**
-
+## H200 NVL8
 ### Prerequisites
 
 ``` bash
@@ -146,7 +143,7 @@ echo '{"quantization": {"quant_algo": "FP8_BLOCK_SCALES", "kv_cache_quant_algo":
 ```
 **Note**: Replace `<*_PATH>` to your actual path. 
 
-### Build Docker 
+#### Build Docker 
 Create a docker and run:
 
 ``` bash
@@ -155,7 +152,7 @@ make -C docker jenkins_run LOCAL_USER=1 DOCKER_RUN_ARGS="-v $YOUR_MODEL_PATH:$YO
 ```
 Here we set `LOCAL_USER=1` argument to set up the local user account inside the container.
 
-### Compile and Install
+#### Compile and Install
 Here we compile the source inside the container:
 
 ``` bash
@@ -169,9 +166,10 @@ pip install --user build/tensorrt_llm*.whl
 export PATH=${HOME}/.local/bin:${PATH}
 export PYTHONPATH=`pwd`
 ```
+### H200 min-latency
+Our benchmark results are based on **Batch = 1, ISL = 1K, OSL = 2K, num_requests = 10 from real dataset**
 
-
-### Benchmark
+#### Benchmark
 To do the benchmark, run the following command:
 
 ```bash
@@ -188,6 +186,7 @@ trtllm-bench --model deepseek-ai/DeepSeek-R1 \
     --max_batch_size 1 \
     --tp 8 \
     --ep 4 \
+    --concurrency 1 \
     --extra_llm_api_options ./extra-llm-api-config.yml
 ```
 
@@ -209,7 +208,7 @@ Explanation:
     ```
 
 
-### Expected Result Format
+#### Expected Result Format
 The perf might be different from different datasets and machines
 
 ``` 
