@@ -142,7 +142,7 @@ cd $YOUR_MODEL_PATH
 GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/deepseek-ai/DeepSeek-R1
 git lfs pull  # Download the full model weight will take a long time
 # Add hf_quant_config.json to add FP8 quant config
-echo '{"quantization": {"quant_algo": "FP8_BLOCK_SCALES", "kv_cache_quant_algo": null}}' | jq '.' > hf_quant_config.json 
+echo '{"quantization": {"quant_algo": "FP8_BLOCK_SCALES", "kv_cache_quant_algo": null}}' | jq '.' > DeepSeek-R1/hf_quant_config.json 
 ```
 **Note**: Replace `<*_PATH>` to your actual path. 
 
