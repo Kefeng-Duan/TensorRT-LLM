@@ -113,6 +113,77 @@ Average request latency (ms):                     45318.9080
 ```
 
 ## B200 max-throughput
+Our benchmark results are based on **Batch = 3072, ISL = 1K, OSL = 2K, num_requests = 49152 from real dataset**
+
+#### Benchmark
+To do the benchmark, run the following command:
+
+```bash
+DS_R1_NVFP4_ALLMOE_MODEL_PATH=$YOUR_MODEL_PATH/DeepSeek-R1-FP4
+trtllm-bench -m deepseek-ai/DeepSeek-R1 \
+    --model_path $DS_R1_NVFP4_ALLMOE_MODEL_PATH \
+    throughput \
+    --tp 8 \
+    --ep 8 \
+    --warmup 0 \
+    --dataset $YOUR_DATA_PATH \
+    --backend pytorch \
+    --max_batch_size 384 \
+    --max_num_tokens 1536 \
+    --num_requests 49152 \
+    --concurrency 3072 \
+    --kv_cache_free_gpu_mem_fraction 0.85 \
+    --extra_llm_api_options ./extra-llm-api-config.yml
+```
+
+Explanation:
+- `trtllm-bench`: A CLI benchmarking utility that aims to make it easier for users to reproduce our officially published. [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html).
+- `--dataset`: Prompt dataset used to benchmark. our official benchmark dataset has ISL = 1K, OSL = 2K
+- `--backend`: Inference backend. Here we use Pytorch backend. 
+- `--tp 8`: Tensor parallel size is 8.
+- `--ep 8`: Expert parallel size is 8.
+- `--max_batch_size`: Max batch size in each rank.
+- `--max_num_tokens`: Max num tokens in each rank.
+- `--num_requests`: Num requests used for the benchmark.
+- `--concurrency`: Total concurrency for the system.
+- `--kv_cache_free_gpu_mem_fraction`: Mem fraction used to hold kv cache tokens.
+- `--extra_llm_api_options`: Used to specify some extra config. The content of the file is as follows:
+
+    ``` yaml
+        pytorch_backend_config:
+            use_cuda_graph: true
+            cuda_graph_padding_enabled: true
+            cuda_graph_batch_sizes:
+            - 1
+            - 2
+            - 4
+            - 8
+            - 16
+            - 32
+            - 64
+            - 128
+            - 256
+            - 384
+            print_iter_log: true
+            enable_overlap_scheduler: true
+        enable_attention_dp: true
+    ```
+
+
+#### Expected Result Format
+The perf might be different from different datasets and machines
+
+``` 
+===========================================================
+= PERFORMANCE OVERVIEW
+===========================================================
+Request Throughput (req/sec):                     17.5825
+Total Output Throughput (tokens/sec):             36008.8948
+Per User Output Throughput (tokens/sec/user):     11.7967
+Per GPU Output Throughput (tokens/sec/gpu):       4501.1119
+Total Latency (ms):                               2795511.9559
+Average request latency (ms):                     174119.3317
+```
 
 ## H200 NVL8
 ### Prerequisites
