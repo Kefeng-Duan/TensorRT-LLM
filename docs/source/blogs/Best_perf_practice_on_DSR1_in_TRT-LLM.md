@@ -2,7 +2,7 @@
 
 NVIDIA has announced world-record DeepSeek-R1 inference performance at NVIDIA GTC 2025. A single NVIDIA DGX system with eight NVIDIA Blackwell GPUs can achieve over 250 tokens per second per user or a maximum throughput of over 30,000 tokens per second on the massive, state-of-the-art 671 billion parameter DeepSeek-R1 model. [NVIDIA Blackwell Delivers World-Record DeepSeek-R1 Inference Performance](https://developer.nvidia.com/blog/nvidia-blackwell-delivers-world-record-deepseek-r1-inference-performance/)
 
-In this blog, we share the configrations and procedures about how to reproduce the number on both B200 and H200 with Pytorch workflow.
+In this blog, we share the configurations and procedures about how to reproduce the number on both B200 and H200 with Pytorch workflow.
 
 ## B200 NVL8
 ### Prerequisites
@@ -73,6 +73,7 @@ trtllm-bench --model deepseek-ai/DeepSeek-R1 \
     --dataset $YOUR_DATA_PATH \
     --backend pytorch \
     --num_requests 10 \
+    --concurrency 1 \
     --max_batch_size 1 \
     --tp 8 \
     --ep 4 \
@@ -81,10 +82,13 @@ trtllm-bench --model deepseek-ai/DeepSeek-R1 \
 
 Explanation:
 - `trtllm-bench`: A CLI benchmarking utility that aims to make it easier for users to reproduce our officially published. [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html).
-- `--dataset`: Prompt dataset used to benchmark. our official benchmark dataset has ISL = 1K, OSL = 2K
-- `--backend`: Inference backend. Here we use Pytorch backend. 
-- `--tp 8`: Tensor parallel size is 8.
-- `--ep 4`: Expert parallel size is 4.
+- `--dataset`: Prompt dataset used to benchmark. Our official benchmark dataset has ISL = 1K, OSL = 2K
+- `--backend`: Inference backend. Here we use Pytorch backend.
+- `--num_requests`: Num requests used for the benchmark.
+- `--concurrency`: Total concurrency for the system.
+- `--max_batch_size`: Max batch size in each rank.
+- `--tp`: Tensor parallel size.
+- `--ep`: Expert parallel size.
 - `--extra_llm_api_options`: Used to specify some extra config. The content of the file is as follows:
 
     ``` yaml
@@ -101,15 +105,15 @@ Explanation:
 The perf might be different from different datasets and machines
 
 ``` 
-===========================================================                     
-= PERFORMANCE OVERVIEW                                                               
-===========================================================                                                                                                               
-Request Throughput (req/sec):                     0.1222                       
-Total Output Throughput (tokens/sec):             250.0612                     
-Per User Output Throughput (tokens/sec/user):     71.5615                
-Per GPU Output Throughput (tokens/sec/gpu):       31.2576                
-Total Latency (ms):                               81839.9807                       
-Average request latency (ms):                     45318.9080
+===========================================================                                                                                                     
+= PERFORMANCE OVERVIEW  
+===========================================================
+Request Throughput (req/sec):                     0.1244   
+Total Output Throughput (tokens/sec):             254.5535
+Per User Output Throughput (tokens/sec/user):     254.7634
+Per GPU Output Throughput (tokens/sec/gpu):       31.8192  
+Total Latency (ms):                               80368.1616
+Average request latency (ms):                     8036.7546
 ```
 
 ## B200 max-throughput
