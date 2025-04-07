@@ -1,4 +1,4 @@
-# How to get best performance on DSR1 in TRT-LLM
+# How to get best performance on DeepSeek-R1 in TensorRT-LLM
 
 NVIDIA has announced world-record DeepSeek-R1 inference performance at NVIDIA GTC 2025. A single NVIDIA DGX system with eight NVIDIA Blackwell GPUs can achieve over 250 tokens per second per user or a maximum throughput of over 30,000 tokens per second on the massive, state-of-the-art 671 billion parameter DeepSeek-R1 model. [NVIDIA Blackwell Delivers World-Record DeepSeek-R1 Inference Performance](https://developer.nvidia.com/blog/nvidia-blackwell-delivers-world-record-deepseek-r1-inference-performance/)
 
@@ -6,7 +6,7 @@ In this blog, we share the configurations and procedures about how to reproduce 
 
 ## B200 NVL8
 ### Prerequisites
-
+#### Clone Code and Checkpoint
 ``` bash
 # Prerequisites
 apt-get update && apt-get -y install git git-lfs
@@ -116,7 +116,7 @@ Total Latency (ms):                               80368.1616
 Average request latency (ms):                     8036.7546
 ```
 
-## B200 max-throughput
+### B200 max-throughput
 Our benchmark results are based on **Batch = 3072, ISL = 1K, OSL = 2K, num_requests = 49152 from real dataset**
 
 #### Benchmark
@@ -191,7 +191,7 @@ Average request latency (ms):                     174119.3317
 
 ## H200 NVL8
 ### Prerequisites
-
+#### Clone Code and Checkpoint
 ``` bash
 # Prerequisites
 apt-get update && apt-get -y install git git-lfs
