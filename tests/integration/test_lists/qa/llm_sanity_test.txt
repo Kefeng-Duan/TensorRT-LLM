@@ -92,8 +92,6 @@ examples/test_whisper.py::test_llm_whisper_general[large-v3-disable_gemm_plugin-
 test_e2e.py::test_llama_e2e[use_cpp_session-remove_input_padding]
 test_e2e.py::test_llama_e2e[use_py_session-remove_input_padding]
 test_e2e.py::test_llama_e2e[use_py_session]
-test_e2e.py::test_llmapi_load_engine_from_build_command[falcon-falcon-7b-instruct] # 5min
-test_e2e.py::test_llmapi_load_engine_from_build_command[gptj-gpt-j-6b] # 5min
 test_e2e.py::test_llmapi_load_engine_from_build_command[llama-codellama/CodeLlama-7b-Instruct-hf] # 5min
 test_e2e.py::test_llmapi_load_engine_from_build_command[llama-llama-models/llama-7b-hf] # 5min
 test_e2e.py::test_mistral_e2e[use_cpp_session-remove_input_padding]
@@ -122,10 +120,10 @@ accuracy/test_cli_flow.py::TestMixtral8x7B::test_fp8_tp2pp2
 accuracy/test_cli_flow.py::TestGemma2_9BIt::test_fp8
 accuracy/test_cli_flow.py::TestQwen2_0_5BInstruct::test_auto_dtype
 accuracy/test_cli_flow.py::TestQwen2_0_5BInstruct::test_fp8
-accuracy/test_cli_flow.py::TestQwen2_7BInstruct::test_weight_only
+accuracy/test_llm_api.py::TestQwen2_7BInstruct::test_weight_only
 accuracy/test_cli_flow.py::TestQwen2_7BInstruct::test_int4_awq_prequantized
-accuracy/test_cli_flow.py::TestQwen2_5_1_5BInstruct::test_weight_only
-accuracy/test_cli_flow.py::TestQwen2_5_1_5BInstruct::test_fp8
+accuracy/test_llm_api.py::TestQwen2_5_1_5BInstruct::test_weight_only
+accuracy/test_llm_api.py::TestQwen2_5_1_5BInstruct::test_fp8
 accuracy/test_llm_api_pytorch.py::TestLlama3_3_70BInstruct::test_fp8_tp4
 accuracy/test_llm_api_pytorch.py::TestLlama3_3_70BInstruct::test_nvfp4_tp4
 accuracy/test_llm_api_pytorch.py::TestMixtral8x7B::test_fp8_tp2
