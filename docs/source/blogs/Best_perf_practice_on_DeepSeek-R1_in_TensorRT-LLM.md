@@ -209,10 +209,6 @@ cd TensorRT-LLM
 git submodule update --init --recursive
 git lfs pull
 
-# Clone the DeepSeek-R1 model
-cd $YOUR_MODEL_PATH
-GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/deepseek-ai/DeepSeek-R1
-git lfs pull  # Download the full model weight will take a long time
 ```
 **Note**: Replace `<*_PATH>` to your actual path. 
 
@@ -249,9 +245,7 @@ To do the benchmark, run the following command:
 # Enable DeepGEMM
 export TRTLLM_DG_ENABLED=1
 
-DS_R1_MODEL_PATH=$YOUR_MODEL_PATH/DeepSeek-R1
 trtllm-bench --model deepseek-ai/DeepSeek-R1 \
-    --model_path $DS_R1_MODEL_PATH \
     throughput \
     --dataset $YOUR_DATA_PATH \
     --backend pytorch \
@@ -305,9 +299,7 @@ To do the benchmark, run the following command:
 ```bash
 export TRTLLM_DG_ENABLED=1
 
-DS_R1_MODEL_PATH=$YOUR_MODEL_PATH/DeepSeek-R1
 trtllm-bench -m deepseek-ai/DeepSeek-R1 \
-    --model_path $DS_R1_MODEL_PATH \
     throughput \
     --tp 8 \
     --ep 8 \
