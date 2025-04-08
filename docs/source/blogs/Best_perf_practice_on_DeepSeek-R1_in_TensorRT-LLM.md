@@ -61,7 +61,7 @@ To do the benchmark, run the following command:
 ```bash
 export TRTLLM_ENABLE_PDL=1
 
-trtllm-bench --model deepseek-ai/DeepSeek-R1 \
+trtllm-bench --model nvidia/DeepSeek-R1-FP4 \
     throughput \
     --dataset $YOUR_DATA_PATH \
     --backend pytorch \
@@ -116,7 +116,7 @@ Our benchmark results are based on **Batch = 3072, ISL = 1K, OSL = 2K, num_reque
 To do the benchmark, run the following command:
 
 ```bash
-trtllm-bench -m deepseek-ai/DeepSeek-R1 \
+trtllm-bench -m nvidia/DeepSeek-R1-FP4 \
     throughput \
     --tp 8 \
     --ep 8 \
