@@ -26,11 +26,6 @@ git clone https://github.com/NVIDIA/TensorRT-LLM.git
 cd TensorRT-LLM
 git submodule update --init --recursive
 git lfs pull
-
-# Clone the DeepSeek-R1-FP4 model
-cd $YOUR_MODEL_PATH
-GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/nvidia/DeepSeek-R1-FP4
-git lfs pull  # Download the full model weight will take a long time
 ```
 **Note**: Replace `<*_PATH>` to your actual path. 
 
@@ -66,9 +61,7 @@ To do the benchmark, run the following command:
 ```bash
 export TRTLLM_ENABLE_PDL=1
 
-DS_R1_NVFP4_ALLMOE_MODEL_PATH=$YOUR_MODEL_PATH/DeepSeek-R1-FP4
 trtllm-bench --model deepseek-ai/DeepSeek-R1 \
-    --model_path $DS_R1_NVFP4_ALLMOE_MODEL_PATH \
     throughput \
     --dataset $YOUR_DATA_PATH \
     --backend pytorch \
@@ -123,9 +116,7 @@ Our benchmark results are based on **Batch = 3072, ISL = 1K, OSL = 2K, num_reque
 To do the benchmark, run the following command:
 
 ```bash
-DS_R1_NVFP4_ALLMOE_MODEL_PATH=$YOUR_MODEL_PATH/DeepSeek-R1-FP4
 trtllm-bench -m deepseek-ai/DeepSeek-R1 \
-    --model_path $DS_R1_NVFP4_ALLMOE_MODEL_PATH \
     throughput \
     --tp 8 \
     --ep 8 \
