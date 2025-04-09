@@ -289,6 +289,9 @@ pytorch_backend_config:
 enable_attention_dp: true
 EOF
 
+# Enable DeepGEMM JIT NVCC compilation
+export TRTLLM_DG_JIT_USE_NVCC=1 
+
 trtllm-bench -m deepseek-ai/DeepSeek-R1 \
     throughput \
     --tp 8 \
@@ -311,11 +314,12 @@ The perf might be different from different datasets and machines
 ===========================================================
 = PERFORMANCE OVERVIEW
 ===========================================================
-Request Throughput (req/sec):                     5.1942
-Total Output Throughput (tokens/sec):             10637.7380
-Per User Output Throughput (tokens/sec/user):     10.4899
-Per GPU Output Throughput (tokens/sec/gpu):       1329.7173
-Total Latency (ms):                               985713.3137
-Average request latency (ms):                     195228.9468
+Request Throughput (req/sec):                     5.1532
+Total Output Throughput (tokens/sec):             10553.8445
+Per User Output Throughput (tokens/sec/user):     10.4199
+Per GPU Output Throughput (tokens/sec/gpu):       1319.2306
+Total Token Throughput (tokens/sec):              15707.0888
+Total Latency (ms):                               993548.8470
+Average request latency (ms):                     197768.0434
 ```
 
