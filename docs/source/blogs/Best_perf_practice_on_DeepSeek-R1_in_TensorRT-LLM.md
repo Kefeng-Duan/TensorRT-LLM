@@ -2,15 +2,15 @@
 
 NVIDIA has announced world-record DeepSeek-R1 inference performance at NVIDIA GTC 2025. A single NVIDIA DGX system with eight NVIDIA Blackwell GPUs can achieve over 250 tokens per second per user or a maximum throughput of over 30,000 tokens per second on the massive, state-of-the-art 671 billion parameter DeepSeek-R1 model. [NVIDIA Blackwell Delivers World-Record DeepSeek-R1 Inference Performance](https://developer.nvidia.com/blog/nvidia-blackwell-delivers-world-record-deepseek-r1-inference-performance/)
 
-In this blog, we share the configurations and procedures about how to reproduce the number on both B200 and H200 with Pytorch workflow.
+In this blog, we share the configurations and procedures about how to reproduce the number on both B200 and H200 with PyTorch workflow.
 
 ## Prerequisites: Install TensorRT-LLM and download models
 
-This section can be skippped if you already have TensoroRT-LLM installed and the already downloaded the DeepSeek R1 model checkpoint.
+This section can be skipped if you already have TensorRT-LLM installed and have already downloaded the DeepSeek R1 model checkpoint.
 
 #### 1. Download TensorRT-LLM
 
-**You can also find more comprehenstive instructions to install TensorRT-LLM in this [TensorRT-LLM installation guide](https://nvidia.github.io/TensorRT-LLM/installation/build-from-source-linux.html), seek to that guide for common issue if you meet any one here.**
+**You can also find more comprehensive instructions to install TensorRT-LLM in this [TensorRT-LLM installation guide](https://nvidia.github.io/TensorRT-LLM/installation/build-from-source-linux.html), refer to that guide for common issues if you encounter any here.**
 
 ``` bash
 # Prerequisites
@@ -31,8 +31,8 @@ git lfs pull
 
 #### 2. Download the DeepSeek R1 models
 
-For NVIDIA Blackwell GPUs, its recommended to use the [FP4 quantized version of DeepSeek R1](https://huggingface.co/nvidia/DeepSeek-R1-FP4) to get the best performance.
-For NVIDIA Hopper GPUs, its recommended to use the FP8 version of the DeepSeek R1 model.
+For NVIDIA Blackwell GPUs, it's recommended to use the [FP4 quantized version of DeepSeek R1](https://huggingface.co/nvidia/DeepSeek-R1-FP4) to get the best performance.
+For NVIDIA Hopper GPUs, it's recommended to use the FP8 version of the DeepSeek R1 model.
 
 ```bash
 # Replace with your actual path
@@ -61,7 +61,7 @@ Here we compile the source inside the container:
 ``` bash
 python3 ./scripts/build_wheel.py --trt_root /usr/local/tensorrt --benchmarks --cuda_architectures "90-real;100-real"  --python_bindings --clean
 ```
-You can set the cuda_architectures to "100-real" if to target Blackwell only, and "90-real" to target Hopper only to save some build time.
+You can set the cuda_architectures to "100-real" if targeting Blackwell only, and "90-real" to target Hopper only to save some build time.
 
 Install and set environment variables:
 
@@ -71,30 +71,30 @@ export PATH=${HOME}/.local/bin:${PATH}
 export PYTHONPATH=`pwd`
 ```
 
-#### 4. Optional: Tune GPU clocks
+#### 5. Optional: Tune GPU clocks
 ```
 sudo nvidia-smi -pm 0; sudo nvidia-smi -pm 1; sudo nvidia-smi boost-slider --vboost 4
 ```
-The boost-slider option will tune the GPU clock and can get you slight perf increase, for B200 min-latency scenarios its about 8 TPS/USER.
-This is not a required step, its provided here to make sure the perf numbers in this doc can be reproduced more close to our internal run. 
+The boost-slider option will tune the GPU clock and can get you slight perf increase, for B200 min-latency scenarios it's about 8 TPS/USER.
+This is not a required step, it's provided here to make sure the perf numbers in this doc can be reproduced more closely to our internal run. 
 
-#### 5.Dataset preparation
+#### 6. Dataset preparation
 
 The trtllm-bench tool requires a dataset file to read prompts and output sequence length of each prompt. Format details of this dataset file can be seen in [preparing a dataset](
 https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html#preparing-a-dataset).
 
-For min-latency benchmarking, **real dataset is required** since the MTP accept rate are affected by the dataset thus affecting the performance.
+For min-latency benchmarking, **real dataset is required** since the MTP accept rate is affected by the dataset thus affecting the performance. You can use your own dataset following the format described in the link above.
 
-For the max-throughput benchmarking, synthetic dataset is enough to be presenative, since it does not use MTP.
-The command to generate synthetic dataset will be attached to max throughput section.
+For the max-throughput benchmarking, synthetic dataset is enough to be representative, since it does not use MTP.
+The command to generate synthetic dataset will be attached to the max throughput section.
 
 ## Reproducing steps
 
-This section provide the reproducing steps for NVIDIA Blackwell B200 and H200 GPUs, for both min-latency and max-throughput scenarios.
+This section provides the reproducing steps for NVIDIA Blackwell B200 and H200 GPUs, for both min-latency and max-throughput scenarios.
 
-All the benchmarking are done by the trtllm-bench command line tool provided in the TensorRT-LLM installation, see [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html) for details of this tool.
+All the benchmarking is done by the trtllm-bench command line tool provided in the TensorRT-LLM installation, see [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html) for details of this tool.
 
-For brief, we only provide the commands to reproduce the perf number without many explanation of the tools and options in this doc.
+For brevity, we only provide the commands to reproduce the perf numbers without detailed explanation of the tools and options in this doc.
 
 All these commands here are assumed to be running inside the container started by `make -C docker run ...` command mentioned in the [Build and run TensorRT-LLM container section](#3-build-and-run-tensorrt-llm-container)
 
@@ -132,7 +132,7 @@ trtllm-bench --model nvidia/DeepSeek-R1-FP4 \
 Explanation:
 - `trtllm-bench`: A CLI benchmarking utility that aims to make it easier for users to reproduce our officially published. See [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html) for details.
 - `--dataset`: Prompt dataset used to benchmark. Our official benchmark dataset has ISL = 1K, OSL = 2K
-- `--backend`: Inference backend. Here we use Pytorch backend.
+- `--backend`: Inference backend. Here we use PyTorch backend.
 - `--num_requests`: Num requests used for the benchmark.
 - `--concurrency`: Total concurrency for the system.
 - `--max_batch_size`: Max batch size in each rank.
@@ -238,7 +238,7 @@ speculative_config:
     num_nextn_predict_layers: 3
 EOF
 
-# Enable DeepGEMM
+# Enable DeepGEMM for better performance on H200
 export TRTLLM_DG_ENABLED=1
 
 trtllm-bench --model deepseek-ai/DeepSeek-R1 \
