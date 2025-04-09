@@ -4,20 +4,21 @@ NVIDIA has announced world-record DeepSeek-R1 inference performance at NVIDIA GT
 
 In this blog, we share the configurations and procedures about how to reproduce the number on both B200 and H200 with Pytorch workflow.
 
-## B200 NVL8
-### Prerequisites
-#### Clone Code and Checkpoint
+## Prerequisites: Install TensorRT-LLM and download models
+
+This section can be skippped if you already have TensoroRT-LLM installed and the already downloaded the DeepSeek R1 model checkpoint.
+
+#### 1. Download TensorRT-LLM
+
+**You can also find more comprehenstive instructions to install TensorRT-LLM in this [TensorRT-LLM installation guide](https://nvidia.github.io/TensorRT-LLM/installation/build-from-source-linux.html), seek to that guide if you meet any issue**
+
 ``` bash
 # Prerequisites
 apt-get update && apt-get -y install git git-lfs
 git lfs install
 
-# Improve GPU performance
-sudo nvidia-smi -pm 0; sudo nvidia-smi -pm 1; sudo nvidia-smi boost-slider --vboost 4
-
 # Replace with your actual path
 YOUR_WORK_PATH=<YOUR_WORK_PATH>
-YOUR_MODEL_PATH=<YOUR_MODEL_PATH>
 YOUR_DATA_PATH=<YOUR_DATA_PATH>
 
 # Clone the TensorRT-LLM repository
@@ -29,21 +30,39 @@ git lfs pull
 ```
 **Note**: Replace `<*_PATH>` to your actual path. 
 
-#### Build Docker 
-Create a docker and run:
+#### 2. Download the DeepSeek R1 models
+
+For NVIDIA Blackwell GPUs, its recommended to use the [FP4 quantized version of DeepSeek R1](https://huggingface.co/nvidia/DeepSeek-R1-FP4) to get the best performance.
+For NVIDIA Hopper GPUs, its recommended to use the FP8 version of the DeepSeek R1 model.
+
+```bash
+# Replace with your actual path
+YOUR_MODEL_PATH=<YOUR_MODEL_PATH>
+cd $YOUR_MODEL_PATH
+
+## Download FP4 model for Blackwell GPUs
+git clone https://huggingface.co/nvidia/DeepSeek-R1-FP4
+
+## Download FP8 model for Hopper GPUs
+## FP8 model also works for Blackwell, but FP4 has the best performance on Blackwell.
+git clone https://huggingface.co/deepseek-ai/DeepSeek-R1
+```
+
+#### 3. Build and run TensorRT-LLM container
 
 ``` bash
 cd TensorRT-LLM
-make -C docker jenkins_run LOCAL_USER=1 DOCKER_RUN_ARGS="-v $YOUR_MODEL_PATH:$YOUR_MODEL_PATH:ro -v $YOUR_DATA_PATH:$YOUR_DATA_PATH:ro -v $YOUR_WORK_PATH:$YOUR_WORK_PATH"
+make -C docker run LOCAL_USER=1 DOCKER_RUN_ARGS="-v $YOUR_MODEL_PATH:$YOUR_MODEL_PATH:ro -v $YOUR_DATA_PATH:$YOUR_DATA_PATH:ro -v $YOUR_WORK_PATH:$YOUR_WORK_PATH"
 ```
-Here we set `LOCAL_USER=1` argument to set up the local user account inside the container.
+Here we set `LOCAL_USER=1` argument to set up the local user instead of root account inside the container, you can remove it if running as root inside container is fine.
 
-#### Compile and Install
+#### 4. Compile and Install TensorRT-LLM
 Here we compile the source inside the container:
 
 ``` bash
-python3 ./scripts/build_wheel.py --trt_root /usr/local/tensorrt --benchmarks --use_ccache --cuda_architectures "100-real"  --python_bindings --clean
+python3 ./scripts/build_wheel.py --trt_root /usr/local/tensorrt --benchmarks --cuda_architectures "90-real;100-real"  --python_bindings --clean
 ```
+You can set the cuda_architectures to "100-real" if to target Blackwell only, and "90-real" to target Hopper only to save some build time.
 
 Install and set environment variables:
 
@@ -52,13 +71,44 @@ pip install --user build/tensorrt_llm*.whl
 export PATH=${HOME}/.local/bin:${PATH}
 export PYTHONPATH=`pwd`
 ```
+
+#### 4. Optional: Tune GPU clocks
+```
+sudo nvidia-smi -pm 0; sudo nvidia-smi -pm 1; sudo nvidia-smi boost-slider --vboost 4
+```
+The boost-slider option will tune the GPU clock and can get you slight perf increase, for B200 min-latency scenarios its about 8 TPS/USER.
+This is not a required step, its provided here to make sure the perf numbers in this doc can be reproduced more close to our internal run. 
+
+#### 5. Prepare a dataset
+```
+#TBD:
+```
+
+
+## Reproducing steps
+
+This section provide the reproducing steps for NVIDIA Blackwell B200 and H200 GPUs, for both min-latency and max-throughput scenarios.
+
+All the benchmarking are done by the trtllm-bench command line tool provided in the TensorRT-LLM installation, see [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html) for details of this tool.
+
+For brief, we only provide the commands to reproduce the perf number without many explanation of the tools and options in this doc.
+
+All these commands here are assumed to be running inside the container started by `make -C docker run ...` command mentioned in the [Build and run TensorRT-LLM container section](#3-build-and-run-tensorrt-llm-container)
+
 ### B200 min-latency
 Our benchmark results are based on **Batch = 1, ISL = 1K, OSL = 2K, num_requests = 10 from real dataset**
-
-#### Benchmark
 To do the benchmark, run the following command:
 
 ```bash
+cat >./extra-llm-api-config.yml<<EOF
+pytorch_backend_config:
+    enable_overlap_scheduler: true
+    use_cuda_graph: true
+speculative_config:
+    decoding_type: MTP
+    num_nextn_predict_layers: 3
+EOF
+
 export TRTLLM_ENABLE_PDL=1
 
 trtllm-bench --model nvidia/DeepSeek-R1-FP4 \
@@ -74,7 +124,7 @@ trtllm-bench --model nvidia/DeepSeek-R1-FP4 \
 ```
 
 Explanation:
-- `trtllm-bench`: A CLI benchmarking utility that aims to make it easier for users to reproduce our officially published. [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html).
+- `trtllm-bench`: A CLI benchmarking utility that aims to make it easier for users to reproduce our officially published. See [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html) for details.
 - `--dataset`: Prompt dataset used to benchmark. Our official benchmark dataset has ISL = 1K, OSL = 2K
 - `--backend`: Inference backend. Here we use Pytorch backend.
 - `--num_requests`: Num requests used for the benchmark.
@@ -84,18 +134,8 @@ Explanation:
 - `--ep`: Expert parallel size.
 - `--extra_llm_api_options`: Used to specify some extra config. The content of the file is as follows:
 
-    ``` yaml
-    pytorch_backend_config:
-        enable_overlap_scheduler: true
-        use_cuda_graph: true
-    speculative_config:
-        decoding_type: MTP
-        num_nextn_predict_layers: 3
-    ```
-
-
-#### Expected Result Format
-The perf might be different from different datasets and machines
+#### Expected Results
+The perf can be different when using different datasets.
 
 ``` 
 ===========================================================                                                                                                     
@@ -116,6 +156,27 @@ Our benchmark results are based on **Batch = 3072, ISL = 1K, OSL = 2K, num_reque
 To do the benchmark, run the following command:
 
 ```bash
+
+cat >./extra-llm-api-config.yml <<EOF
+pytorch_backend_config:
+    use_cuda_graph: true
+    cuda_graph_padding_enabled: true
+    cuda_graph_batch_sizes:
+    - 1
+    - 2
+    - 4
+    - 8
+    - 16
+    - 32
+    - 64
+    - 128
+    - 256
+    - 384
+    print_iter_log: true
+    enable_overlap_scheduler: true
+enable_attention_dp: true
+EOF
+
 trtllm-bench -m nvidia/DeepSeek-R1-FP4 \
     throughput \
     --tp 8 \
@@ -131,43 +192,7 @@ trtllm-bench -m nvidia/DeepSeek-R1-FP4 \
     --extra_llm_api_options ./extra-llm-api-config.yml
 ```
 
-Explanation:
-- `trtllm-bench`: A CLI benchmarking utility that aims to make it easier for users to reproduce our officially published. [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html).
-- `--dataset`: Prompt dataset used to benchmark. our official benchmark dataset has ISL = 1K, OSL = 2K
-- `--backend`: Inference backend. Here we use Pytorch backend. 
-- `--tp 8`: Tensor parallel size is 8.
-- `--ep 8`: Expert parallel size is 8.
-- `--max_batch_size`: Max batch size in each rank.
-- `--max_num_tokens`: Max num tokens in each rank.
-- `--num_requests`: Num requests used for the benchmark.
-- `--concurrency`: Total concurrency for the system.
-- `--kv_cache_free_gpu_mem_fraction`: Mem fraction used to hold kv cache tokens.
-- `--extra_llm_api_options`: Used to specify some extra config. The content of the file is as follows:
-
-    ``` yaml
-        pytorch_backend_config:
-            use_cuda_graph: true
-            cuda_graph_padding_enabled: true
-            cuda_graph_batch_sizes:
-            - 1
-            - 2
-            - 4
-            - 8
-            - 16
-            - 32
-            - 64
-            - 128
-            - 256
-            - 384
-            print_iter_log: true
-            enable_overlap_scheduler: true
-        enable_attention_dp: true
-    ```
-
-
 #### Expected Result Format
-The perf might be different from different datasets and machines
-
 ``` 
 ===========================================================
 = PERFORMANCE OVERVIEW
@@ -180,59 +205,20 @@ Total Latency (ms):                               2795511.9559
 Average request latency (ms):                     174119.3317
 ```
 
-## H200 NVL8
-### Prerequisites
-#### Clone Code and Checkpoint
-``` bash
-# Prerequisites
-apt-get update && apt-get -y install git git-lfs
-git lfs install
-
-# Replace with your actual path
-YOUR_WORK_PATH=<YOUR_WORK_PATH>
-YOUR_MODEL_PATH=<YOUR_MODEL_PATH>
-YOUR_DATA_PATH=<YOUR_DATA_PATH>
-
-# Clone the TensorRT-LLM repository
-cd $YOUR_WORK_PATH
-git clone https://github.com/NVIDIA/TensorRT-LLM.git
-cd TensorRT-LLM
-git submodule update --init --recursive
-git lfs pull
-
-```
-**Note**: Replace `<*_PATH>` to your actual path. 
-
-#### Build Docker 
-Create a docker and run:
-
-``` bash
-cd TensorRT-LLM
-make -C docker jenkins_run LOCAL_USER=1 DOCKER_RUN_ARGS="-v $YOUR_MODEL_PATH:$YOUR_MODEL_PATH:ro -v $YOUR_DATA_PATH:$YOUR_DATA_PATH:ro -v $YOUR_WORK_PATH:$YOUR_WORK_PATH"
-```
-Here we set `LOCAL_USER=1` argument to set up the local user account inside the container.
-
-#### Compile and Install
-Here we compile the source inside the container:
-
-``` bash
-python3 ./scripts/build_wheel.py --trt_root /usr/local/tensorrt --benchmarks --use_ccache --cuda_architectures "90-real"  --python_bindings --clean
-```
-
-Install and set environment variables:
-
-```bash
-pip install --user build/tensorrt_llm*.whl
-export PATH=${HOME}/.local/bin:${PATH}
-export PYTHONPATH=`pwd`
-```
 ### H200 min-latency
 Our benchmark results are based on **Batch = 1, ISL = 1K, OSL = 2K, num_requests = 10 from real dataset**
-
-#### Benchmark
 To do the benchmark, run the following command:
 
 ```bash
+cat >./extra-llm-api-config.yml<<EOF
+pytorch_backend_config:
+    enable_overlap_scheduler: true
+    use_cuda_graph: true
+speculative_config:
+    decoding_type: MTP
+    num_nextn_predict_layers: 3
+EOF
+
 # Enable DeepGEMM
 export TRTLLM_DG_ENABLED=1
 
@@ -248,26 +234,7 @@ trtllm-bench --model deepseek-ai/DeepSeek-R1 \
     --extra_llm_api_options ./extra-llm-api-config.yml
 ```
 
-Explanation:
-- `trtllm-bench`: A CLI packags benchmarking utility that aims to make it easier for users to reproduce our officially published. [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html).
-- `--dataset`: Prompt dataset used to benchmark. our official benchmark dataset has ISL = 1K, OSL = 2K
-- `--backend`: Inference backend. Here we use Pytorch backed. 
-- `--tp 8`: Tensor parallel size is 8.
-- `--ep 4`: Expert parallel size is 4.
-- `--extra_llm_api_options`: Used to specify some extra config. The content of the file is as follows:
-
-    ``` yaml
-    pytorch_backend_config:
-        enable_overlap_scheduler: true
-        use_cuda_graph: true
-    speculative_config:
-        decoding_type: MTP
-        num_nextn_predict_layers: 3
-    ```
-
-
 #### Expected Result Format
-The perf might be different from different datasets and machines
 
 ``` 
 ===========================================================                     
@@ -283,11 +250,18 @@ Average request latency (ms):                     12945.9379
 
 ### H200 max-throughput 
 Our benchmark results are based on **Batch = 1024, ISL = 1K, OSL = 2K, num_requests = 5120 from real dataset**
-
-#### Benchmark
 To do the benchmark, run the following command:
 
 ```bash
+cat >./extra-llm-api-config.yml<<EOF
+pytorch_backend_config:
+    use_cuda_graph: true
+    cuda_graph_batch_sizes:
+    - 128
+    enable_overlap_scheduler: true
+enable_attention_dp: true
+EOF
+
 export TRTLLM_DG_ENABLED=1
 
 trtllm-bench -m deepseek-ai/DeepSeek-R1 \
@@ -304,29 +278,6 @@ trtllm-bench -m deepseek-ai/DeepSeek-R1 \
     --kv_cache_free_gpu_mem_fraction 0.8 \
     --extra_llm_api_options ./extra-llm-api-config.yml
 ```
-
-Explanation:
-- `trtllm-bench`: A CLI benchmarking utility that aims to make it easier for users to reproduce our officially published. [TensorRT-LLM Benchmarking](https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html).
-- `--dataset`: Prompt dataset used to benchmark. our official benchmark dataset has ISL = 1K, OSL = 2K
-- `--backend`: Inference backend. Here we use Pytorch backend. 
-- `--tp 8`: Tensor parallel size is 8.
-- `--ep 8`: Expert parallel size is 8.
-- `--max_batch_size`: Max batch size in each rank.
-- `--max_num_tokens`: Max num tokens in each rank.
-- `--num_requests`: Num requests used for the benchmark.
-- `--concurrency`: Total concurrency for the system.
-- `--kv_cache_free_gpu_mem_fraction`: Mem fraction used to hold kv cache tokens.
-- `--extra_llm_api_options`: Used to specify some extra config. The content of the file is as follows:
-
-    ``` yaml
-        pytorch_backend_config:
-            use_cuda_graph: true
-            cuda_graph_batch_sizes:
-            - 128
-            enable_overlap_scheduler: true
-        enable_attention_dp: true
-    ```
-
 
 #### Expected Result Format
 The perf might be different from different datasets and machines
