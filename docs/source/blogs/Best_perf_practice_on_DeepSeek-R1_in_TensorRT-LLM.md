@@ -238,9 +238,6 @@ speculative_config:
     num_nextn_predict_layers: 3
 EOF
 
-# Enable DeepGEMM for better performance on H200
-export TRTLLM_DG_ENABLED=1
-
 trtllm-bench --model deepseek-ai/DeepSeek-R1 \
     throughput \
     --dataset $YOUR_DATA_PATH \
@@ -291,8 +288,6 @@ pytorch_backend_config:
     enable_overlap_scheduler: true
 enable_attention_dp: true
 EOF
-
-export TRTLLM_DG_ENABLED=1
 
 trtllm-bench -m deepseek-ai/DeepSeek-R1 \
     throughput \
