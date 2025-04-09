@@ -167,7 +167,7 @@ python ${YOUR_WORK_PATH}/benchmarks/cpp/prepare_dataset.py \
         --stdout \
         --tokenizer nvidia/DeepSeek-R1-FP4 \
         token-norm-dist \
-        --input-mean 1024 --output-mean 1024 \
+        --input-mean 1024 --output-mean 2048 \
         --input-stdev 0 --output-stdev 0 \
         --num-requests 49152 > dataset.txt
 
@@ -278,9 +278,9 @@ python ${YOUR_WORK_PATH}/benchmarks/cpp/prepare_dataset.py \
         --stdout \
         --tokenizer deepseek-ai/DeepSeek-R1 \
         token-norm-dist \
-        --input-mean 1024 --output-mean 1024 \
+        --input-mean 1024 --output-mean 2048 \
         --input-stdev 0 --output-stdev 0 \
-        --num-requests 49152 > dataset.txt
+        --num-requests 5120 > dataset.txt
 YOUR_DATA_PATH=./dataset.txt
 
 cat >./extra-llm-api-config.yml<<EOF
