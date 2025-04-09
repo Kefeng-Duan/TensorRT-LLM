@@ -10,7 +10,7 @@ This section can be skippped if you already have TensoroRT-LLM installed and the
 
 #### 1. Download TensorRT-LLM
 
-**You can also find more comprehenstive instructions to install TensorRT-LLM in this [TensorRT-LLM installation guide](https://nvidia.github.io/TensorRT-LLM/installation/build-from-source-linux.html), seek to that guide if you meet any issue**
+**You can also find more comprehenstive instructions to install TensorRT-LLM in this [TensorRT-LLM installation guide](https://nvidia.github.io/TensorRT-LLM/installation/build-from-source-linux.html), seek to that guide for common issue if you meet any one here.**
 
 ``` bash
 # Prerequisites
@@ -19,7 +19,6 @@ git lfs install
 
 # Replace with your actual path
 YOUR_WORK_PATH=<YOUR_WORK_PATH>
-YOUR_DATA_PATH=<YOUR_DATA_PATH>
 
 # Clone the TensorRT-LLM repository
 cd $YOUR_WORK_PATH
@@ -52,7 +51,7 @@ git clone https://huggingface.co/deepseek-ai/DeepSeek-R1
 
 ``` bash
 cd TensorRT-LLM
-make -C docker run LOCAL_USER=1 DOCKER_RUN_ARGS="-v $YOUR_MODEL_PATH:$YOUR_MODEL_PATH:ro -v $YOUR_DATA_PATH:$YOUR_DATA_PATH:ro -v $YOUR_WORK_PATH:$YOUR_WORK_PATH"
+make -C docker run LOCAL_USER=1 DOCKER_RUN_ARGS="-v $YOUR_MODEL_PATH:$YOUR_MODEL_PATH:ro -v $YOUR_WORK_PATH:$YOUR_WORK_PATH"
 ```
 Here we set `LOCAL_USER=1` argument to set up the local user instead of root account inside the container, you can remove it if running as root inside container is fine.
 
@@ -79,11 +78,15 @@ sudo nvidia-smi -pm 0; sudo nvidia-smi -pm 1; sudo nvidia-smi boost-slider --vbo
 The boost-slider option will tune the GPU clock and can get you slight perf increase, for B200 min-latency scenarios its about 8 TPS/USER.
 This is not a required step, its provided here to make sure the perf numbers in this doc can be reproduced more close to our internal run. 
 
-#### 5. Prepare a dataset
-```
-#TBD:
-```
+#### 5.Dataset preparation
 
+The trtllm-bench tool requires a dataset file to read prompts and output sequence length of each prompt. Format details of this dataset file can be seen in [preparing a dataset](
+https://nvidia.github.io/TensorRT-LLM/performance/perf-benchmarking.html#preparing-a-dataset).
+
+For min-latency benchmarking, **real dataset is required** since the MTP accept rate are affected by the dataset thus affecting the performance.
+
+For the max-throughput benchmarking, synthetic dataset is enough to be presenative, since it does not use MTP.
+The command to generate synthetic dataset will be attached to max throughput section.
 
 ## Reproducing steps
 
@@ -97,9 +100,12 @@ All these commands here are assumed to be running inside the container started b
 
 ### B200 min-latency
 Our benchmark results are based on **Batch = 1, ISL = 1K, OSL = 2K, num_requests = 10 from real dataset**
+
 To do the benchmark, run the following command:
 
 ```bash
+YOUR_DATA_PATH=<your dataset file following the format>
+
 cat >./extra-llm-api-config.yml<<EOF
 pytorch_backend_config:
     enable_overlap_scheduler: true
@@ -135,7 +141,7 @@ Explanation:
 - `--extra_llm_api_options`: Used to specify some extra config. The content of the file is as follows:
 
 #### Expected Results
-The perf can be different when using different datasets.
+The perf can be different when using different datasets and different machines.
 
 ``` 
 ===========================================================                                                                                                     
@@ -156,6 +162,16 @@ Our benchmark results are based on **Batch = 3072, ISL = 1K, OSL = 2K, num_reque
 To do the benchmark, run the following command:
 
 ```bash
+# generate synthetic dataset 
+python ${YOUR_WORK_PATH}/benchmarks/cpp/prepare_dataset.py \
+        --stdout \
+        --tokenizer nvidia/DeepSeek-R1-FP4 \
+        token-norm-dist \
+        --input-mean 1024 --output-mean 1024 \
+        --input-stdev 0 --output-stdev 0 \
+        --num-requests 49152 > dataset.txt
+
+YOUR_DATA_PATH=./dataset.txt
 
 cat >./extra-llm-api-config.yml <<EOF
 pytorch_backend_config:
@@ -182,7 +198,7 @@ trtllm-bench -m nvidia/DeepSeek-R1-FP4 \
     --tp 8 \
     --ep 8 \
     --warmup 0 \
-    --dataset $YOUR_DATA_PATH \
+    --dataset ${YOUR_DATA_PATH} \
     --backend pytorch \
     --max_batch_size 384 \
     --max_num_tokens 1536 \
@@ -193,6 +209,7 @@ trtllm-bench -m nvidia/DeepSeek-R1-FP4 \
 ```
 
 #### Expected Result Format
+The perf might be different from different datasets and machines
 ``` 
 ===========================================================
 = PERFORMANCE OVERVIEW
@@ -210,6 +227,8 @@ Our benchmark results are based on **Batch = 1, ISL = 1K, OSL = 2K, num_requests
 To do the benchmark, run the following command:
 
 ```bash
+YOUR_DATA_PATH=<your dataset file following the format>
+
 cat >./extra-llm-api-config.yml<<EOF
 pytorch_backend_config:
     enable_overlap_scheduler: true
@@ -236,6 +255,7 @@ trtllm-bench --model deepseek-ai/DeepSeek-R1 \
 
 #### Expected Result Format
 
+The perf might be different from different datasets and machines
 ``` 
 ===========================================================                     
 = PERFORMANCE OVERVIEW                                                               
@@ -253,6 +273,16 @@ Our benchmark results are based on **Batch = 1024, ISL = 1K, OSL = 2K, num_reque
 To do the benchmark, run the following command:
 
 ```bash
+# generate synthetic dataset 
+python ${YOUR_WORK_PATH}/benchmarks/cpp/prepare_dataset.py \
+        --stdout \
+        --tokenizer deepseek-ai/DeepSeek-R1 \
+        token-norm-dist \
+        --input-mean 1024 --output-mean 1024 \
+        --input-stdev 0 --output-stdev 0 \
+        --num-requests 49152 > dataset.txt
+YOUR_DATA_PATH=./dataset.txt
+
 cat >./extra-llm-api-config.yml<<EOF
 pytorch_backend_config:
     use_cuda_graph: true
