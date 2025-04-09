@@ -75,7 +75,7 @@ Prompt: 'The future of AI is', Generated text: ' a topic of great interest and s
 ```
 
 ### Multi-Token Prediction (MTP)
-To run with MTP, use [examples/pytorch/quickstart_advanced.py](../pytorch/quickstart_advanced.py) with addtional options, see
+To run with MTP, use [examples/pytorch/quickstart_advanced.py](../pytorch/quickstart_advanced.py) with additional options, see
 ```bash
 cd examples/pytorch
 python quickstart_advanced.py --model_dir <YOUR_MODEL_DIR> --spec_decode_algo MTP --spec_decode_nextn N
