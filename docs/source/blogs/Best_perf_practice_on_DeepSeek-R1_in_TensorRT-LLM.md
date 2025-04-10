@@ -289,7 +289,7 @@ pytorch_backend_config:
 enable_attention_dp: true
 EOF
 
-# Enable DeepGEMM JIT NVCC compilation
+# Use NVCC for DeepGEMM JIT compilation
 export TRTLLM_DG_JIT_USE_NVCC=1 
 
 trtllm-bench -m deepseek-ai/DeepSeek-R1 \
