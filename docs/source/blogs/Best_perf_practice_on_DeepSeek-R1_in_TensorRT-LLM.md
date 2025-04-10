@@ -156,7 +156,7 @@ Average request latency (ms):                     8036.7546
 ```
 
 ### B200 max-throughput
-Our benchmark results are based on **Batch = 3072, ISL = 1K, OSL = 2K, num_requests = 49152 from real dataset**
+Our benchmark results are based on **Batch = 3072, ISL = 1K, OSL = 2K, num_requests = 49152 from synthetic dataset**
 
 #### Benchmark
 To do the benchmark, run the following command:
@@ -214,12 +214,12 @@ The perf might be different from different datasets and machines
 ===========================================================
 = PERFORMANCE OVERVIEW
 ===========================================================
-Request Throughput (req/sec):                     17.5825
-Total Output Throughput (tokens/sec):             36008.8948
-Per User Output Throughput (tokens/sec/user):     11.7967
-Per GPU Output Throughput (tokens/sec/gpu):       4501.1119
-Total Latency (ms):                               2795511.9559
-Average request latency (ms):                     174119.3317
+Request Throughput (req/sec):                     17.3885
+Total Output Throughput (tokens/sec):             35611.5942
+Per User Output Throughput (tokens/sec/user):     11.6701
+Per GPU Output Throughput (tokens/sec/gpu):       4451.4493
+Total Latency (ms):                               2826700.0758
+Average request latency (ms):                     176064.1921
 ```
 
 ### H200 min-latency
