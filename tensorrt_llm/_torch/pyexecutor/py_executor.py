@@ -1525,10 +1525,22 @@ class PyExecutor:
                 if self.adp_ctx_waiting_iters >= 500:
                     self.adp_ctx_waiting_iters = 0
                     context_requests = scheduler_output.context_requests
-
-        if len(context_requests) == 0:  # revise number of context requests
-            all_ranks_num_scheduled_context_requests = [0] * self.dist.tp_size
-            all_ranks_num_scheduled_tokens = all_ranks_num_scheduled_generation_requests
+            # revise number of context requests, tokens
+            if len(context_requests) == 0:
+                all_ranks_num_scheduled_context_requests = [
+                    0
+                ] * self.dist.tp_size
+                all_ranks_num_scheduled_tokens = all_ranks_num_scheduled_generation_requests
+            else:  # keep the number of context request as same as the min rank
+                min_num_ctx = min(all_ranks_num_scheduled_context_requests)
+                context_requests = context_requests[:min_num_ctx]
+                all_ranks_num_scheduled_context_requests = [
+                    min_num_ctx
+                ] * self.dist.tp_size
+                all_ranks_num_scheduled_tokens = self.dist.tp_allgather([
+                    sum([len(req.get_tokens(0)) for req in context_requests]) +
+                    num_scheduled_generation_requests
+                ])
 
         scheduled_requests.context_requests = context_requests
         scheduled_requests.generation_requests = scheduler_output.generation_requests
